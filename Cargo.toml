@@ -8,31 +8,52 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 axum = { version = "0.7", optional = true }
+config = { version = "0.14", optional = true }
 console_error_panic_hook = "0.1"
+env_logger = { version = "0.11", optional = true }
+http = "1"
+ldap3 = { version = "0.11", default-features = false, features = [
+    "tls-rustls",
+], optional = true }
 leptos = { version = "0.6", features = ["nightly"] }
 leptos_axum = { version = "0.6", optional = true }
 leptos_meta = { version = "0.6", features = ["nightly"] }
 leptos_router = { version = "0.6", features = ["nightly"] }
+ory-hydra-client = "2.2"
+regex = { version = "1.10", optional = true }
+reqwest = { version = "0.11", default-features = false, features = [
+    "rustls-tls-native-roots",
+], optional = true }
+serde = "1.0"
+serde_json = { version = "1.0", optional = true }
+strum = { version = "0.26", features = ["derive"] }
+thiserror = "1"
 tokio = { version = "1", features = ["rt-multi-thread"], optional = true }
 tower = { version = "0.4", optional = true }
 tower-http = { version = "0.5", features = ["fs"], optional = true }
-wasm-bindgen = "=0.2.89"
-thiserror = "1"
 tracing = { version = "0.1", optional = true }
-http = "1"
+humantime = { version = "2.1", optional = true }
+wasm-bindgen = "=0.2.89"
 
 [features]
 hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate"]
 ssr = [
     "dep:axum",
+    "dep:config",
+    "dep:env_logger",
+    "dep:humantime",
+    "dep:ldap3",
+    "dep:leptos_axum",
+    "dep:reqwest",
+    "dep:serde_json",
+    "dep:regex",
     "dep:tokio",
     "dep:tower",
     "dep:tower-http",
-    "dep:leptos_axum",
+    "dep:tracing",
     "leptos/ssr",
     "leptos_meta/ssr",
     "leptos_router/ssr",
-    "dep:tracing",
 ]
 
 # Defines a size-optimized profile for the WASM bundle in release mode
