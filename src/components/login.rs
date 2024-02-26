@@ -2,12 +2,18 @@ use leptos::*;
 use leptos_router::*;
 use serde::{Deserialize, Serialize};
 
+use crate::csrf::get_csrf_token_resource;
 use crate::error::{CycloneError, ErrorTemplate};
 use crate::html::get_html_resource;
 
 #[cfg(feature = "ssr")]
 use {
-    crate::{fileserv::CycloneState, hydra::map_get_login_request_error, ldap::get_claims},
+    crate::{
+        csrf::verify_csrf_token,
+        hydra::map_get_login_request_error,
+        ldap::get_claims,
+        server::state::{bind_session, verify_session, CycloneState},
+    },
     ory_hydra_client::{
         apis::o_auth2_api::{
             accept_o_auth2_login_request, get_o_auth2_login_request, reject_o_auth2_login_request,
@@ -45,6 +51,7 @@ pub fn Login() -> impl IntoView {
     );
 
     let brand = get_html_resource("brand");
+    let csrf_token = get_csrf_token_resource();
 
     view! {
         <Suspense fallback=|| { "Loading ..." }>
@@ -61,6 +68,7 @@ pub fn Login() -> impl IntoView {
 
             {move || {
                 let brand = brand.get();
+                let csrf_token = csrf_token.get();
                 let Some(Ok(login_request)) = login_request.get() else {
                     return ().into_view();
                 };
@@ -76,7 +84,7 @@ pub fn Login() -> impl IntoView {
                             "Remember me"
                         </label>
                         <input type="hidden" name="login_challenge" value=challenge/>
-                        // TODO: CSRF-token
+                        <input type="hidden" name="csrf_token" value=csrf_token/>
                         <button type="submit" name="accept" value="true" class="prefer">
                             "Login"
                         </button>
@@ -97,10 +105,18 @@ async fn get_login_request(
     login_challenge: String,
 ) -> Result<LoginRequestCSI, ServerFnError<CycloneError>> {
     let state = expect_context::<CycloneState>();
+
     let hydra_config = state.hydra_config();
     let login_request = get_o_auth2_login_request(&hydra_config, &login_challenge)
         .await
         .map_err(map_get_login_request_error)?;
+    let session_id = login_request
+        .session_id
+        .ok_or(CycloneError::InternalServerError)?;
+
+    bind_session(format!("login_challenge={login_challenge}")).await?;
+    bind_session(format!("session_id={session_id}")).await?;
+
     if login_request.skip {
         accept_login(
             &login_request.challenge,
@@ -121,7 +137,11 @@ async fn handle_login(
     password: String,
     remember: Option<String>,
     accept: String,
+    csrf_token: String,
 ) -> Result<(), ServerFnError<CycloneError>> {
+    verify_csrf_token(&csrf_token).await?;
+    verify_session(&format!("login_challenge={login_challenge}")).await?;
+
     if accept != "true" {
         return reject_login(&login_challenge).await;
     }

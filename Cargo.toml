@@ -20,6 +20,7 @@ leptos_axum = { version = "0.6", optional = true }
 leptos_meta = { version = "0.6", features = ["nightly"] }
 leptos_router = { version = "0.6", features = ["nightly"] }
 ory-hydra-client = "2.2"
+rand = { version = "0.8", optional = true }
 regex = { version = "1.10", optional = true }
 reqwest = { version = "0.11", default-features = false, features = [
     "rustls-tls-native-roots",
@@ -31,6 +32,7 @@ thiserror = "1"
 tokio = { version = "1", features = ["rt-multi-thread"], optional = true }
 tower = { version = "0.4", optional = true }
 tower-http = { version = "0.5", features = ["fs"], optional = true }
+tower-sessions = { version = "0.10", optional = true }
 tracing = { version = "0.1", optional = true }
 humantime = { version = "2.1", optional = true }
 wasm-bindgen = "=0.2.89"
@@ -46,10 +48,12 @@ ssr = [
     "dep:leptos_axum",
     "dep:reqwest",
     "dep:serde_json",
+    "dep:rand",
     "dep:regex",
     "dep:tokio",
     "dep:tower",
     "dep:tower-http",
+    "dep:tower-sessions",
     "dep:tracing",
     "leptos/ssr",
     "leptos_meta/ssr",
