@@ -87,8 +87,7 @@ pub fn Consent() -> impl IntoView {
                 let Some(Ok(consent_request)) = consent_request.get() else {
                     return ().into_view();
                 };
-                let challenge1 = consent_request.challenge.clone();
-                let challenge2 = consent_request.challenge;
+                let challenge = consent_request.challenge;
                 let client_name = consent_request.client_name;
                 let scopes_view = consent_request
                     .scope_display_names
@@ -109,15 +108,13 @@ pub fn Consent() -> impl IntoView {
                     <ul>{scopes_view}</ul>
 
                     <ActionForm class="consent-form" action=handle_consent>
-                        <input type="hidden" name="consent_challenge" value=challenge1/>
-                        <input type="hidden" name="accept" value="true"/>
-                        <button type="submit" class="prefer">
+                        <input type="hidden" name="consent_challenge" value=challenge/>
+                        <button type="submit" name="accept" value="true" class="prefer">
                             "Accept"
                         </button>
-                    </ActionForm>
-                    <ActionForm class="consent-form" action=handle_consent>
-                        <input type="hidden" name="consent_challenge" value=challenge2/>
-                        <button type="submit">"Reject"</button>
+                        <button type="submit" name="accept" value="false">
+                            "Reject"
+                        </button>
                     </ActionForm>
                 }
                     .into_view()

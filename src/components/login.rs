@@ -64,8 +64,7 @@ pub fn Login() -> impl IntoView {
                 let Some(Ok(login_request)) = login_request.get() else {
                     return ().into_view();
                 };
-                let challenge1 = login_request.challenge.clone();
-                let challenge2 = login_request.challenge;
+                let challenge = login_request.challenge;
                 view! {
                     <div class="greeting">"Sign into your " {brand} " account"</div>
 
@@ -76,16 +75,14 @@ pub fn Login() -> impl IntoView {
                             <input type="checkbox" name="remember" value="true" id="remember"/>
                             "Remember me"
                         </label>
-                        <input type="hidden" name="login_challenge" value=challenge1/>
-                        <input type="hidden" name="accept" value="true"/>
+                        <input type="hidden" name="login_challenge" value=challenge/>
                         // TODO: CSRF-token
-                        <button type="submit" class="prefer">
+                        <button type="submit" name="accept" value="true" class="prefer">
                             "Login"
                         </button>
-                    </ActionForm>
-                    <ActionForm class="login-form" action=handle_login>
-                        <input type="hidden" name="login_challenge" value=challenge2/>
-                        <button type="submit">"Cancel"</button>
+                        <button type="submit" name="accept" value="false">
+                            "Cancel"
+                        </button>
                     </ActionForm>
                 }
                     .into_view()
@@ -120,20 +117,18 @@ async fn get_login_request(
 #[server(HandleLogin)]
 async fn handle_login(
     login_challenge: String,
-    username: Option<String>,
-    password: Option<String>,
+    username: String,
+    password: String,
     remember: Option<String>,
-    accept: Option<String>,
+    accept: String,
 ) -> Result<(), ServerFnError<CycloneError>> {
-    if accept.as_deref() != Some("true") {
+    if accept != "true" {
         return reject_login(&login_challenge).await;
     }
 
-    let username = username.as_deref().unwrap_or("");
-    let password = password.as_deref().unwrap_or("");
     let remember = remember.as_deref() == Some("true");
 
-    match authenticate(username, password).await {
+    match authenticate(&username, &password).await {
         Ok(Some(subject)) => {
             // Login successful
             accept_login(&login_challenge, subject, remember).await
