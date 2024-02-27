@@ -4,11 +4,14 @@ use axum::Router;
 use config::{Config, ConfigError, Environment, File};
 use cyclone::components::app::App;
 use cyclone::config::{mutate_leptos_options, CycloneConfig};
-use cyclone::fileserv::{file_and_error_handler, CycloneState};
+use cyclone::fileserv::file_and_error_handler;
+use cyclone::server::state::CycloneState;
 use leptos::*;
 use leptos_axum::{generate_route_list, LeptosRoutes};
 use leptos_config::errors::LeptosConfigError;
 use thiserror::Error;
+use tower_sessions::cookie::time::Duration;
+use tower_sessions::{Expiry, MemoryStore, SessionManagerLayer};
 
 #[derive(Debug, Error)]
 enum Exit {
@@ -56,13 +59,19 @@ async fn serve() -> Result<(), Exit> {
     let addr = leptos_options.site_addr;
     let routes = generate_route_list(App);
 
+    let session_store = MemoryStore::default();
+    let session_layer = SessionManagerLayer::new(session_store)
+        .with_name("__Host-sid")
+        .with_expiry(Expiry::OnInactivity(Duration::hours(1)));
+
     let state = CycloneState::new(leptos_options, cyclone_config);
 
     // build our application with a route
     let app = Router::new()
         .leptos_routes(&state, routes, App)
         .fallback(file_and_error_handler)
-        .with_state(state);
+        .with_state(state)
+        .layer(session_layer);
 
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
     logging::log!("listening on http://{}", &addr);

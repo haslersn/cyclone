@@ -3,7 +3,7 @@ use leptos::*;
 use crate::error::CycloneError;
 
 #[cfg(feature = "ssr")]
-use crate::fileserv::CycloneState;
+use crate::server::state::CycloneState;
 
 #[server(GetHtml)]
 async fn get_html(key: String) -> Result<String, ServerFnError<CycloneError>> {

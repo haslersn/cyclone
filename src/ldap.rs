@@ -7,7 +7,7 @@ use regex::{Captures, Regex};
 use serde::{Deserialize, Deserializer};
 
 use crate::error::CycloneError;
-use crate::fileserv::CycloneState;
+use crate::server::state::CycloneState;
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct LdapConfig {

@@ -10,6 +10,7 @@ pub enum CycloneError {
     InvalidCredentials,
     LoginChallengeMissing,
     ConsentChallengeMissing,
+    SessionExpired,
     GetOAuth2LoginRequestError(String),
     GetOAuth2ConsentRequestError(String),
 }

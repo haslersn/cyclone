@@ -2,13 +2,17 @@ use leptos::*;
 use leptos_router::*;
 use serde::{Deserialize, Serialize};
 
+use crate::csrf::get_csrf_token_resource;
 use crate::error::{CycloneError, ErrorTemplate};
 use crate::html::get_html_resource;
 
 #[cfg(feature = "ssr")]
 use {
     crate::{
-        fileserv::CycloneState, hydra::map_get_consent_request_error, ldap::get_claims_for_scopes,
+        csrf::verify_csrf_token,
+        hydra::map_get_consent_request_error,
+        ldap::get_claims_for_scopes,
+        server::state::{bind_session, verify_session, CycloneState},
     },
     ory_hydra_client::{
         apis::{
@@ -74,6 +78,7 @@ pub fn Consent() -> impl IntoView {
     });
 
     let brand = get_html_resource("brand");
+    let csrf_token = get_csrf_token_resource();
 
     view! {
         <ErrorTemplate errors=errors.into()/>
@@ -84,6 +89,7 @@ pub fn Consent() -> impl IntoView {
 
             {move || {
                 let brand = brand.get();
+                let csrf_token = csrf_token.get();
                 let Some(Ok(consent_request)) = consent_request.get() else {
                     return ().into_view();
                 };
@@ -109,6 +115,7 @@ pub fn Consent() -> impl IntoView {
 
                     <ActionForm class="consent-form" action=handle_consent>
                         <input type="hidden" name="consent_challenge" value=challenge/>
+                        <input type="hidden" name="csrf_token" value=csrf_token/>
                         <button type="submit" name="accept" value="true" class="prefer">
                             "Accept"
                         </button>
@@ -133,6 +140,15 @@ async fn get_consent_request(
     let consent_request = get_o_auth2_consent_request(hydra_config, &consent_challenge)
         .await
         .map_err(map_get_consent_request_error)?;
+
+    let session_id = consent_request
+        .login_session_id
+        .as_ref()
+        .ok_or(CycloneError::InternalServerError)?;
+    verify_session(&format!("session_id={session_id}")).await?;
+
+    bind_session(format!("consent_challenge={consent_challenge}")).await?;
+
     if consent_request.skip == Some(true) {
         accept_consent(&consent_request).await?;
     }
@@ -176,7 +192,11 @@ async fn get_consent_request(
 async fn handle_consent(
     consent_challenge: String,
     accept: Option<String>,
+    csrf_token: String,
 ) -> Result<(), ServerFnError<CycloneError>> {
+    verify_csrf_token(&csrf_token).await?;
+    verify_session(&format!("consent_challenge={consent_challenge}")).await?;
+
     if accept.as_deref() == Some("true") {
         let state = expect_context::<CycloneState>();
         let hydra_config = state.hydra_config();

@@ -1,6 +1,7 @@
 pub mod components;
 #[cfg(feature = "ssr")]
 pub mod config;
+pub mod csrf;
 pub mod error;
 #[cfg(feature = "ssr")]
 pub mod fileserv;
@@ -9,6 +10,8 @@ pub mod html;
 pub mod hydra;
 #[cfg(feature = "ssr")]
 pub mod ldap;
+#[cfg(feature = "ssr")]
+pub mod server;
 
 #[cfg(feature = "hydrate")]
 #[wasm_bindgen::prelude::wasm_bindgen]
